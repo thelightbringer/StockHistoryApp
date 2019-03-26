@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		#container{
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%,-50%);
+			text-align: center;
+		}
+		#chart-container {
+			width:800px;
+			margin: 1em auto;
+		}
+		#input-container {
+			max-width: 800px;
+			display: inline-grid;
+			grid-template-columns: 345px auto;
+			padding: 10px;
+			grid-column-gap: 30px;
+		}
+		
+		#go-button {
+			border: 1px solid;
+			padding: 5px 45px;
+		}
+		button[disabled]{
+		  cursor: not-allowed;
+		}
+		.cursor {
+			cursor:pointer;
+		}
+	</style>
+	<title>Stock History App</title>
+</head>
+<body>
+	<script src="https://code.highcharts.com/stock/highstock.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+	<div id="container">
+		<div id="input-container">
+			<input id="input-box" />
+			<button type="button" id="go-button" disabled>GO</button>
+		</div>
+		<div id="chart-container" style="height: 400px; min-width: 310px"></div>
+	</div>
+	<script>
+		
+		let goButton = document.getElementById('go-button');
+		let inputBox = document.getElementById('input-box');
+		
+		inputBox.addEventListener('keyup', function() {
+			// For triggering function on return key press
+			if(event.keyCode == 13 && !goButton.hasAttribute('disabled')) {
+				loadChart();
+				return ;
+			}
+			
+			let value = this.value.toLowerCase();
+			if(value == "aapl") {
+				goButton.removeAttribute('disabled');
+				goButton.className = "cursor";
+			} else if(!goButton.hasAttribute('disabled')) {
+				goButton.setAttribute('disabled', 'disabled');
+				goButton.className = "";
+			}
+			
+		});
+		goButton.addEventListener('click', loadChart);
+		
+		function loadChart() {
+			var xhttp = new XMLHttpRequest();
+			let response, url = 'https://www.worldtradingdata.com/api/v1/history?symbol=AAPL&sort=newest&api_token=demo';
+			xhttp.onreadystatechange = function() {
+			  if (this.readyState == 4 && this.status == 200) {
+				response = JSON.parse(this.responseText).history;
+				let dataArr = [];
+				for(let k in response) {
+					dataArr.push([(new Date(k)).getTime(), parseInt(response[k].close)]);
+				}
+				dataArr.reverse();
+				Highcharts.setOptions({
+					lang:{
+						rangeSelectorZoom: ''
+					}
+				});
+				Highcharts.stockChart('chart-container', {
+					rangeSelector: {
+						 buttons: [{
+								type: 'day',
+								count: 7,
+								text: 'Last Week'
+							}, {
+								type: 'month',
+								count: 1,
+								text: 'Last Month'
+							}, {
+								type: 'month',
+								count: 6,
+								text: 'Last 6 Month'
+							}],
+						buttonTheme: {
+							width: 140,
+							padding:10
+						},
+						buttonPosition: {
+								align: 'center',
+								x: -60,
+								y: 0
+						},
+						inputEnabled: false,
+						selected: 0
+					},
+					yAxis: {
+						opposite:false
+					},
+					 navigator: {
+						enabled: false
+					},
+					tooltip: {
+						formatter: function(d){
+							return ("<b>" + this.y + " USD   </b>") + (moment(new Date(this.x)).format('dddd, MMMM Do'))
+						},
+						valueDecimals: 4,
+					},
+							series: [{
+						name: 'AAPL',
+						color: '#FF0000',
+						data: dataArr
+					}]
+				});
+				
+			   }
+			 };
+			xhttp.open("GET", url, true);
+			xhttp.send();
+		}
+		
+	</script>
+</body>
+</html>
